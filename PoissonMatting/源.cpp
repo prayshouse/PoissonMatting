@@ -26,13 +26,27 @@ void gradient(Mat src, Mat x, Mat y)
 	}
 }
 
+void laplaceOp(const Mat src, OutputArray output)
+{
+	Mat gaussian;
+	GaussianBlur(src, gaussian, Size(3, 3), 0, 0, BORDER_DEFAULT);
+	imshow("gauseion", gaussian);
+	Mat dst;
+	int delta = 0, ddepth = CV_16S, scale = 1, kernel_size = 3;
+	Laplacian(gaussian, dst, ddepth, kernel_size, scale, delta, BORDER_DEFAULT);
+	convertScaleAbs(dst, output);
+
+}
+
 int main()
 {
 	Mat src = imread("troll.png");
+	imshow("src", src);
 	Mat trimap = imread("trollTrimap.bmp", CV_LOAD_IMAGE_GRAYSCALE);
 
 	Mat grey = Mat::zeros(src.rows, src.cols, CV_8U);
-	cvtColor(src, grey, CV_BGR2GRAY);
+	cvtColor(src, grey, CV_RGB2GRAY);
+	//Mat grey = imread("troll.png", CV_LOAD_IMAGE_GRAYSCALE);
 
 	// 区分前景后景标志位
 	Mat foreFlag = Mat::zeros(src.rows, src.cols, CV_8U);
@@ -60,6 +74,7 @@ int main()
 			}
 		}
 	}
+	imshow("grey", grey);
 
 	Mat foreInpaint = Mat::zeros(src.rows, src.cols, CV_8U);
 	Mat backInpaint = Mat::zeros(src.rows, src.cols, CV_8U);
@@ -71,32 +86,61 @@ int main()
 	imshow("backinpaint", backInpaint);
 
 	Mat different = Mat::zeros(src.rows, src.cols, CV_8U);
+	Mat gaussianDiffenent;
+	GaussianBlur(different, gaussianDiffenent, Size(3, 3), 0, 0, BORDER_DEFAULT);
+	
 	for (int i = 0; i < src.rows; i++)
 		for (int j = 0; j < src.cols; j++)
 			different.at<uchar>(i, j) = foreInpaint.at<uchar>(i, j) - backInpaint.at<uchar>(i, j);
-	imshow("diff", different);
+	imshow("diff", gaussianDiffenent);
 	
-	Mat xGradient = Mat::zeros(src.rows, src.cols, CV_8U);
-	Mat yGradient = Mat::zeros(src.rows, src.cols, CV_8U);
-	Mat xxGradient = Mat::zeros(src.rows, src.cols, CV_8U);
-	Mat xyGradient = Mat::zeros(src.rows, src.cols, CV_8U);
-	Mat yxGradient = Mat::zeros(src.rows, src.cols, CV_8U);
-	Mat yyGradient = Mat::zeros(src.rows, src.cols, CV_8U);
+	//Mat xGradient = Mat::zeros(src.rows, src.cols, CV_8U);
+	//Mat yGradient = Mat::zeros(src.rows, src.cols, CV_8U);
+	//Mat xxGradient = Mat::zeros(src.rows, src.cols, CV_8U);
+	//Mat xyGradient = Mat::zeros(src.rows, src.cols, CV_8U);
+	//Mat yxGradient = Mat::zeros(src.rows, src.cols, CV_8U);
+	//Mat yyGradient = Mat::zeros(src.rows, src.cols, CV_8U);
 
-	gradient(different, xGradient, yGradient);
-	gradient(different / xGradient, xxGradient, xyGradient);
-	gradient(different / yGradient, yxGradient, yyGradient);
+	
+	//gradient(different, xGradient, yGradient);
+	//gradient(different / xGradient, xxGradient, xyGradient);
+	//gradient(different / yGradient, yxGradient, yyGradient);
+	//Mat b = Mat::zeros(src.rows, src.cols, CV_8U);
+	//b = xxGradient + yyGradient;
+	/*Mat gaussianDifferent;
+	Mat gaussianSrc;
+	GaussianBlur(different, gaussianDifferent, Size(3, 3), 0, 0, BORDER_DEFAULT);
+	GaussianBlur(grey, gaussianSrc, Size(3, 3), 0, 0, BORDER_DEFAULT);
+	imshow("gdiff", gaussianDifferent);
+	imshow("gsrc", gaussianSrc);
+	Mat terminatLaplace;
+	Mat terminatLaplaceS;
+	Laplacian(gaussianDifferent, terminatLaplace, CV_16S, 3, 1, 0, BORDER_DEFAULT);
+	Laplacian(gaussianSrc, terminatLaplaceS, CV_16S, 3, 1, 0, BORDER_DEFAULT);
+	Mat laplace = Mat::zeros(src.rows, src.cols, CV_8U);
+	Mat laplaceS = Mat::zeros(src.rows, src.cols, CV_8U);
+	convertScaleAbs(laplace, terminatLaplace);
+	convertScaleAbs(laplaceS, terminatLaplaceS);*/
 
-	Mat b = Mat::zeros(src.rows, src.cols, CV_8U);
+	Mat laplace = Mat::zeros(src.rows, src.cols, CV_8U);
+	Mat laplaceS = Mat::zeros(src.rows, src.cols, CV_8U);
+	laplaceOp(grey, laplaceS);
+	laplaceOp(different, laplace);
+	imshow("laplace", laplace);
+	imshow("laplaceS", laplaceS);
 
-	b = xxGradient + yyGradient;
+	cout << sum(src)[0] << " " << sum(grey)[0] << " " << sum(laplace)[0] << endl;
+	//Mat laplace = Mat::zeros(src.rows, src.cols, CV_8U);
+	
 
 	Mat alphaNew = Mat::zeros(src.rows, src.cols, CV_8U);
 	Mat alphaOld = Mat::zeros(src.rows, src.cols, CV_8U);
 	alphaNew = foreFlag + 0.5 * unknowFlag;
 	
+	imshow("alphaNew", alphaNew);
 
 	double threshold = 0.1;
+	double minus;
 	int n = 1;
 
 	while (n < 50)
@@ -108,13 +152,16 @@ int main()
 			{
 				if (unknowFlag.at<uchar>(i, j) != 0)
 				{
-					alphaNew.at<uchar>(i, j) = 1.0 / 4 * (alphaNew.at<uchar>(i - 1, j) + alphaNew.at<uchar>(i, j - 1)
-						+ alphaOld.at<uchar>(i, j + 1) + alphaOld.at<uchar>(i + 1, j) - b.at<uchar>(i, j));
+					alphaNew.at<uchar>(i, j) = 0.25 * (alphaNew.at<uchar>(i - 1, j) + alphaNew.at<uchar>(i, j - 1)
+						+ alphaOld.at<uchar>(i, j + 1) + alphaOld.at<uchar>(i + 1, j) - laplace.at<uchar>(i, j));
 				}
 			}
 		}
 		n++;
+		minus = sum(alphaNew)[0] - sum(alphaOld)[0];
+		if (minus < threshold) break;
 	}
+	cout << n << endl;
 
 	Mat output = Mat::zeros(src.rows, src.cols, CV_8UC4);
 	
@@ -133,7 +180,7 @@ int main()
 	vector<int> compression_params;
 	compression_params.push_back(IMWRITE_PNG_COMPRESSION);
 	compression_params.push_back(9);
-	imwrite("output.png", output, compression_params);
+	//imwrite("output.png", output, compression_params);
 	imshow("output", output);
 	waitKey(0);
 	return 0;

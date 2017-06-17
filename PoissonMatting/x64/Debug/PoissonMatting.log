@@ -1,4 +1,4 @@
-﻿生成启动时间为 2017/6/15 16:17:54。
+﻿生成启动时间为 2017/6/17 13:49:48。
      1>项目“E:\workspace_openCV\PoissonMatting\PoissonMatting\PoissonMatting.vcxproj”在节点 2 上(Build 个目标)。
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\CL.exe /c /ZI /nologo /W3 /WX- /Od /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"x64\Debug\\" /Fd"x64\Debug\vc140.pdb" /Gd /TP /errorReport:prompt "源.cpp"
@@ -9,7 +9,7 @@
      1>d:\opencv\opencv\build\include\opencv2\core\utility.hpp : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
      1>e:\workspace_opencv\poissonmatting\poissonmatting\源.cpp(20): warning C4244: “=”: 从“float”转换到“uchar”，可能丢失数据
      1>e:\workspace_opencv\poissonmatting\poissonmatting\源.cpp(24): warning C4244: “=”: 从“float”转换到“uchar”，可能丢失数据
-     1>e:\workspace_opencv\poissonmatting\poissonmatting\源.cpp(112): warning C4244: “=”: 从“double”转换到“uchar”，可能丢失数据
+     1>e:\workspace_opencv\poissonmatting\poissonmatting\源.cpp(156): warning C4244: “=”: 从“double”转换到“uchar”，可能丢失数据
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"E:\workspace_openCV\PoissonMatting\x64\Debug\PoissonMatting.exe" /INCREMENTAL /NOLOGO opencv_world310.lib opencv_world310d.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /Debug /PDB:"E:\workspace_openCV\PoissonMatting\x64\Debug\PoissonMatting.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"E:\workspace_openCV\PoissonMatting\x64\Debug\PoissonMatting.lib" /MACHINE:X64 "x64\Debug\源.obj"
          PoissonMatting.vcxproj -> E:\workspace_openCV\PoissonMatting\x64\Debug\PoissonMatting.exe
@@ -17,4 +17,4 @@
 
 已成功生成。
 
-已用时间 00:00:02.33
+已用时间 00:00:03.14
