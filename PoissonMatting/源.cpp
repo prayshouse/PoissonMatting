@@ -35,7 +35,6 @@ void laplaceOp(const Mat src, OutputArray output)
 	int delta = 0, ddepth = CV_16S, scale = 1, kernel_size = 3;
 	Laplacian(gaussian, dst, ddepth, kernel_size, scale, delta, BORDER_DEFAULT);
 	convertScaleAbs(dst, output);
-
 }
 
 int main()
@@ -49,6 +48,8 @@ int main()
 	//Mat grey = imread("troll.png", CV_LOAD_IMAGE_GRAYSCALE);
 
 	// 区分前景后景标志位
+	// 标志位存储在foreFlag, unknowFlag, backFlag里面
+	// 图像存储在foreGrey, backGrey里面
 	Mat foreFlag = Mat::zeros(src.rows, src.cols, CV_8U);
 	Mat backFlag = Mat::zeros(src.rows, src.cols, CV_8U);
 	Mat foreGrey = Mat::zeros(src.rows, src.cols, CV_8U);
@@ -76,32 +77,34 @@ int main()
 	}
 	imshow("grey", grey);
 
+	// 计算unknown区域中，Fp和Bp的值，取最近的点
+	// 计算的值存储在foreInpaint和backInpaint里面
 	Mat foreInpaint = Mat::zeros(src.rows, src.cols, CV_8U);
 	Mat backInpaint = Mat::zeros(src.rows, src.cols, CV_8U);
 	inpaint(foreGrey, unknowFlag + backFlag, foreInpaint, 3, INPAINT_TELEA);
-	foreInpaint = foreInpaint & ~backFlag;
 	inpaint(backGrey, unknowFlag + foreFlag, backInpaint, 3, INPAINT_TELEA);
+	foreInpaint = foreInpaint & ~backFlag;
 	backInpaint = backInpaint & ~foreFlag;
-	imshow("foreinpaint", foreInpaint);
-	imshow("backinpaint", backInpaint);
 
-	Mat different = Mat::zeros(src.rows, src.cols, CV_8U);
-	Mat gaussianDiffenent;
-	GaussianBlur(different, gaussianDiffenent, Size(3, 3), 0, 0, BORDER_DEFAULT);
+	// 计算F-B，并用Gaussian filter过滤
+	// 计算的值存储在gaussianDifferent里面
+	Mat different = Mat::zeros(src.rows, src.cols, CV_16S);
+	Mat gaussianDifferent = Mat(src.rows, src.cols, CV_16S);
+	Mat showDifferent;
 	
 	for (int i = 0; i < src.rows; i++)
 		for (int j = 0; j < src.cols; j++)
-			different.at<uchar>(i, j) = foreInpaint.at<uchar>(i, j) - backInpaint.at<uchar>(i, j);
-	imshow("diff", gaussianDiffenent);
-	
+			different.at<short>(i, j) = (int)foreInpaint.at<uchar>(i, j) - (int)backInpaint.at<uchar>(i, j);
+	GaussianBlur(different, gaussianDifferent, Size(3, 3), 0, 0, BORDER_DEFAULT);
+	convertScaleAbs(gaussianDifferent, showDifferent);
+	imshow("showdiff", gaussianDifferent);
+
 	//Mat xGradient = Mat::zeros(src.rows, src.cols, CV_8U);
 	//Mat yGradient = Mat::zeros(src.rows, src.cols, CV_8U);
 	//Mat xxGradient = Mat::zeros(src.rows, src.cols, CV_8U);
 	//Mat xyGradient = Mat::zeros(src.rows, src.cols, CV_8U);
 	//Mat yxGradient = Mat::zeros(src.rows, src.cols, CV_8U);
 	//Mat yyGradient = Mat::zeros(src.rows, src.cols, CV_8U);
-
-	
 	//gradient(different, xGradient, yGradient);
 	//gradient(different / xGradient, xxGradient, xyGradient);
 	//gradient(different / yGradient, yxGradient, yyGradient);
@@ -122,17 +125,44 @@ int main()
 	convertScaleAbs(laplace, terminatLaplace);
 	convertScaleAbs(laplaceS, terminatLaplaceS);*/
 
+	// 计算△I
+	// 计算结果存储在laplace里面
 	Mat laplace = Mat::zeros(src.rows, src.cols, CV_8U);
-	Mat laplaceS = Mat::zeros(src.rows, src.cols, CV_8U);
-	laplaceOp(grey, laplaceS);
-	laplaceOp(different, laplace);
+	laplaceOp(grey, laplace);
 	imshow("laplace", laplace);
-	imshow("laplaceS", laplaceS);
 
-	cout << sum(src)[0] << " " << sum(grey)[0] << " " << sum(laplace)[0] << endl;
-	//Mat laplace = Mat::zeros(src.rows, src.cols, CV_8U);
-	
 
+	// 计算 gradient-x, gradient-y
+	// 梯度结果存储在xGrad, yGrad中，绝对值结果存储在xAbsGrad, yAbsGrad中
+	Mat gaussianSrc;
+	Mat xGrad, yGrad;
+	Mat xAbsGrad = Mat(src.rows, src.cols, CV_16S);
+	Mat yAbsGrad = Mat(src.rows, src.cols, CV_16S);
+	GaussianBlur(grey, gaussianSrc, Size(3, 3), 0, 0, BORDER_DEFAULT);
+	Sobel(gaussianSrc, xGrad, -1, 1, 0, 3, 1, 0, BORDER_DEFAULT);
+	Sobel(gaussianSrc, yGrad, -1, 0, 1, 3, 1, 0, BORDER_DEFAULT);
+	convertScaleAbs(xGrad, xAbsGrad);
+	convertScaleAbs(yGrad, yAbsGrad);
+	imshow("absgrad-x", xAbsGrad);
+
+	// 计算div(▽I / (F - B))
+	// 散度结果存储在div之中
+	Mat xAbsGradQuotient = Mat(src.rows, src.cols, CV_16S);
+	Mat yAbsGradQuotient = Mat(src.rows, src.cols, CV_16S);
+	Mat xxGrad, yyGrad, xxAbsGrad, yyAbsGrad;
+	Mat div;
+	// divide(xAbsGrad, gaussianDifferent, xAbsGradQuotient, 1, -1);
+	// divide(yAbsGrad, gaussianDifferent, yAbsGradQuotient, 1, -1);
+
+	Sobel(xAbsGradQuotient, xxGrad, -1, 1, 0, 3, 1, 0, BORDER_DEFAULT);
+	Sobel(yAbsGradQuotient, yyGrad, -1, 0, 1, 3, 1, 0, BORDER_DEFAULT);
+	convertScaleAbs(xxGrad, xxAbsGrad);
+	convertScaleAbs(yyGrad, yyAbsGrad);
+	div = xxAbsGrad + yyAbsGrad;
+	imshow("div", div);
+
+
+	// 计算α
 	Mat alphaNew = Mat::zeros(src.rows, src.cols, CV_8U);
 	Mat alphaOld = Mat::zeros(src.rows, src.cols, CV_8U);
 	alphaNew = foreFlag + 0.5 * unknowFlag;
